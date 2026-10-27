@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Equipment Inventory</title>
+  <style>
+    :root {
+      --navy: #172b4d;
+      --blue: #2563eb;
+      --ink: #1f2937;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --background: #f4f7fb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--ink);
+      font: 14px/1.5 Arial, Helvetica, sans-serif;
+    }
+
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 24px;
+    }
+
+    .header-inner, main {
+      width: min(1250px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    h1 { margin: 0 0 4px; font-size: 25px; }
+    header p { margin: 0; color: #cbd5e1; }
+    main { padding: 26px 0 44px; }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px;
+      margin-bottom: 22px;
+      box-shadow: 0 3px 12px rgba(23, 43, 77, .04);
+    }
+
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    h2 { margin: 0; color: var(--navy); font-size: 19px; }
+    .muted, .count { color: var(--muted); font-size: 12px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: 13px; font-weight: 600; }
+
+    input, select {
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: 3px solid #bfdbfe;
+      border-color: var(--blue);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .primary { background: var(--blue); color: white; }
+    .primary:hover { background: #1d4ed8; }
+    .secondary, .pagination button { background: #eaf0f8; color: var(--navy); }
+    .remove-button { background: transparent; color: #b91c1c; padding: 6px 8px; }
+    .remove-button:hover { background: #fef2f2; }
+
+    .catalog-tools {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .catalog-tools input { flex: 1; }
+    .catalog-tools select { width: 190px; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1200px;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f8fafc; }
+
+    .thumb {
+      display: block;
+      width: 42px;
+      height: 42px;
+      border-radius: 5px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+    }
+
+    .no-photo {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      background: #f1f5f9;
+      color: #94a3b8;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.repair { background: #fef3c7; color: #b45309; }
+    .badge.drmo { background: #fee2e2; color: #b91c1c; }
+
+    .empty { padding: 28px 16px; color: var(--muted); text-align: center; }
+    .pagination {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      margin-top: 13px;
+    }
+
+    .pagination button { padding: 7px 11px; }
+
+    @media (max-width: 700px) {
+      .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { padding: 17px; }
+    }
+
+    @media (max-width: 480px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .catalog-tools { flex-direction: column; }
+      .catalog-tools select { width: 100%; }
+      .panel-heading { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Equipment Inventory</h1>
+      <p>Add equipment and browse the inventory catalog.</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="form-title">
+      <div class="panel-heading">
+        <h2 id="form-title">Add equipment</h2>
+        <span class="muted">Fields marked * are required.</span>
+      </div>
+
+      <form id="equipment-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="name">Equipment name *</label>
+            <input id="name" name="name" required maxlength="100">
+          </div>
+
+          <div class="field">
+            <label for="manufacturer">Manufacturer</label>
+            <input id="manufacturer" name="manufacturer" maxlength="100">
+          </div>
+
+          <div class="field">
+            <label for="serialNumber">Serial Number</label>
+            <input id="serialNumber" name="serialNumber" maxlength="100">
+          </div>
+
+          <div class="field">
+            <label for="ecnTag">ECN Tag *</label>
+            <input id="ecnTag" name="ecnTag" required maxlength="50">
+          </div>
+
+          <div class="field">
+            <label for="category">Category *</label>
+            <select id="category" name="category" required>
+              <option value="">Select a category</option>
+              <option>Task Trainer</option>
+              <option>Virtual Reality</option>
+              <option>Patient Mannequin</option>
+              <option>IT</option>
+              <option>Biomed</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="status">Status *</label>
+            <select id="status" name="status" required>
+              <option value="">Select a status</option>
+              <option>Active</option>
+              <option>Repair</option>
+              <option>DRMO</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="building">Building *</label>
+            <input id="building" name="building" required maxlength="80">
+          </div>
+
+          <div class="field">
+            <label for="floor">Floor *</label>
+            <input id="floor" name="floor" required maxlength="40">
+          </div>
+
+          <div class="field">
+            <label for="room">Room *</label>
+            <input id="room" name="room" required maxlength="40">
+          </div>
+
+          <div class="field">
+            <label for="lifecycleDate">Lifecycle Date</label>
+            <input id="lifecycleDate" name="lifecycleDate" type="date">
+          </div>
+
+          <div class="field">
+            <label for="picture">Profile picture</label>
+            <input id="picture" name="picture" type="file" accept="image/*">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="secondary" type="reset">Clear</button>
+          <button class="primary" id="submit-button" type="submit">Add to catalog</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="catalog-title">
+      <div class="panel-heading">
+        <h2 id="catalog-title">Equipment catalog</h2>
+        <span class="count" id="item-count" aria-live="polite">Loading…</span>
+      </div>
+
+      <div class="catalog-tools">
+        <input id="search" type="search"
+               placeholder="Search equipment, manufacturer, serial, tag, or location…"
+               aria-label="Search equipment">
+        <select id="status-filter" aria-label="Filter by status">
+          <option value="">All statuses</option>
+          <option>Active</option>
+          <option>Repair</option>
+          <option>DRMO</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Picture</th>
+              <th>Equipment</th>
+              <th>Manufacturer</th>
+              <th>Serial Number</th>
+              <th>ECN Tag</th>
+              <th>Category</th>
+              <th>Building</th>
+              <th>Floor</th>
+              <th>Room</th>
+              <th>Lifecycle Date</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="catalog-body"></tbody>
+        </table>
+        <div id="empty-message" class="empty" hidden></div>
+      </div>
+
+      <div class="pagination">
+        <button id="previous-page" type="button">Previous</button>
+        <span id="page-label" class="muted"></span>
+        <button id="next-page" type="button">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbw12uSCAltN3H4i4Fwfaj1JGM92nhhICelXfzYis2mttR9Xy6kxVHvsb5ICFoBO97fs/exec";
+    const PAGE_SIZE = 25;
+
+    const form = document.getElementById("equipment-form");
+    const body = document.getElementById("catalog-body");
+    const searchInput = document.getElementById("search");
+    const statusFilter = document.getElementById("status-filter");
+    const itemCount = document.getElementById("item-count");
+    const emptyMessage = document.getElementById("empty-message");
+    const pageLabel = document.getElementById("page-label");
+    const previousButton = document.getElementById("previous-page");
+    const nextButton = document.getElementById("next-page");
+    const submitButton = document.getElementById("submit-button");
+
+    let items = [];
+    let currentPage = 1;
+
+    function loadItems() {
+      return new Promise((resolve, reject) => {
+        const callbackName = "inventoryCallback_" + Date.now();
+        const script = document.createElement("script");
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Inventory request timed out."));
+        }, 15000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = data => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Could not load inventory."));
+        };
+
+        script.src = `${API_URL}?callback=${callbackName}&_=${Date.now()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function compressPicture(file) {
+      if (!file) return null;
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Please select an image file.");
+      }
+
+      const image = new Image();
+      const imageUrl = URL.createObjectURL(file);
+
+      try {
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+          image.src = imageUrl;
+        });
+
+        const scale = Math.min(1, 1200 / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise(resolve =>
+          canvas.toBlob(resolve, "image/jpeg", 0.78)
+        );
+
+        if (!blob || blob.size > 500 * 1024) {
+          throw new Error("Could not compress the picture. Try a smaller image.");
+        }
+
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } finally {
+        URL.revokeObjectURL(imageUrl);
+      }
+    }
+
+    async function sendToBackend(payload) {
+      // A simple form-encoded request avoids a browser CORS preflight.
+      const response = await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: new URLSearchParams({ payload: JSON.stringify(payload) })
+      });
+
+      // In no-cors mode the browser intentionally doesn't expose the response.
+      return response;
+    }
+
+    function addCell(row, value) {
+      const cell = document.createElement("td");
+      cell.textContent = value || "—";
+      row.appendChild(cell);
+      return cell;
+    }
+
+    function renderCatalog() {
+      const query = searchInput.value.trim().toLowerCase();
+      const filter = statusFilter.value;
+
+      const filtered = items.filter(item => {
+        const searchable = [
+          item.name, item.manufacturer, item.serialNumber, item.ecnTag,
+          item.category, item.building, item.floor, item.room, item.status
+        ].join(" ").toLowerCase();
+
+        return searchable.includes(query) && (!filter || item.status === filter);
+      });
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      currentPage = Math.min(currentPage, totalPages);
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+      itemCount.textContent = `${filtered.length} ${filtered.length === 1 ? "item" : "items"}`;
+      pageLabel.textContent = `Page ${currentPage} of ${totalPages}`;
+      previousButton.disabled = currentPage <= 1;
+      nextButton.disabled = currentPage >= totalPages;
+      body.replaceChildren();
+
+      if (!filtered.length) {
+        emptyMessage.textContent = items.length
+          ? "No equipment matches your search or filter."
+          : "No equipment has been added yet.";
+        emptyMessage.hidden = false;
+        return;
+      }
+
+      emptyMessage.hidden = true;
+
+      pageItems.forEach(item => {
+        const row = document.createElement("tr");
+        const pictureCell = document.createElement("td");
+
+        if (item.pictureUrl) {
+          const image = document.createElement("img");
+          image.className = "thumb";
+          image.alt = `Picture of ${item.name || "equipment"}`;
+          image.src = item.pictureUrl;
+          pictureCell.appendChild(image);
+        } else {
+          const placeholder = document.createElement("div");
+          placeholder.className = "no-photo";
+          placeholder.textContent = "No image";
+          pictureCell.appendChild(placeholder);
+        }
+
+        row.appendChild(pictureCell);
+        addCell(row, item.name);
+        addCell(row, item.manufacturer);
+        addCell(row, item.serialNumber);
+        addCell(row, item.ecnTag);
+        addCell(row, item.category);
+        addCell(row, item.building);
+        addCell(row, item.floor);
+        addCell(row, item.room);
+        addCell(row, item.lifecycleDate);
+
+        const statusCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `badge ${(item.status || "").toLowerCase()}`;
+        badge.textContent = item.status || "—";
+        statusCell.appendChild(badge);
+        row.appendChild(statusCell);
+
+        const actionCell = document.createElement("td");
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-button";
+        removeButton.textContent = "Remove";
+        removeButton.addEventListener("click", async () => {
+          const code = prompt("Enter the removal code:");
+          if (code === null) return;
+
+          try {
+            await sendToBackend({
+              action: "delete",
+              id: item.id,
+              removalCode: code
+            });
+            alert("Removal request sent. The catalog will refresh shortly.");
+            setTimeout(refreshCatalog, 1800);
+          } catch {
+            alert("Could not send the removal request.");
+          }
+        });
+
+        actionCell.appendChild(removeButton);
+        row.appendChild(actionCell);
+        body.appendChild(row);
+      });
+    }
+
+    async function refreshCatalog() {
+      try {
+        items = await loadItems();
+        if (!Array.isArray(items)) items = [];
+        renderCatalog();
+      } catch {
+        itemCount.textContent = "Unable to load";
+        emptyMessage.textContent =
+          "Could not load the inventory. Check the Apps Script URL and deployment settings.";
+        emptyMessage.hidden = false;
+      }
+    }
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting…";
+
+      try {
+        const data = new FormData(form);
+        const pictureData = await compressPicture(data.get("picture"));
+
+        const item = {
+          action: "add",
+          id: crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
+          name: data.get("name").trim(),
+          manufacturer: data.get("manufacturer").trim(),
+          serialNumber: data.get("serialNumber").trim(),
+          ecnTag: data.get("ecnTag").trim(),
+          category: data.get("category"),
+          building: data.get("building").trim(),
+          floor: data.get("floor").trim(),
+          room: data.get("room").trim(),
+          lifecycleDate: data.get("lifecycleDate"),
+          status: data.get("status"),
+          pictureBase64: pictureData
+        };
+
+        await sendToBackend(item);
+        form.reset();
+        alert("Equipment submission sent. The catalog will refresh shortly.");
+        setTimeout(refreshCatalog, 1800);
+      } catch (error) {
+        alert(error.message || "Could not submit the equipment.");
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Add to catalog";
+      }
+    });
+
+    searchInput.addEventListener("input", () => {
+      currentPage = 1;
+      renderCatalog();
+    });
+
+    statusFilter.addEventListener("change", () => {
+      currentPage = 1;
+      renderCatalog();
+    });
+
+    previousButton.addEventListener("click", () => {
+      currentPage--;
+      renderCatalog();
+    });
+
+    nextButton.addEventListener("click", () => {
+      currentPage++;
+      renderCatalog();
+    });
+
+    refreshCatalog();
+  </script>
+</body>
+</html>
